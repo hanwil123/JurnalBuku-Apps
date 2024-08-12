@@ -1,0 +1,5 @@
+package com.example.jurnalbukuapps
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity()
