@@ -47,7 +47,9 @@ dependencies:
   flutter_dotenv: ^5.1.0
   dart_jsonwebtoken: ^2.14.0
   carousel_slider: ^4.2.1
-
+  syncfusion_flutter_pdf: ^26.2.9
+  flutter_cached_pdfview: ^0.4.2
+  pdfx: ^2.6.0
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +76,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
       - assets/TRISHA1.jpg
+      - assets/novelnestlogo.jpg
       - assets/IU2.png
       - assets/google_PNG19635-removebg-preview.png
       - assets/Facebook_Logo_2023-removebg-preview.png

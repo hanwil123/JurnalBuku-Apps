@@ -47,3 +47,4 @@ class _DaftarbukuViewState extends State<DaftarbukuView> {
         bottomNavigationBar: BottomBar());
   }
 }
+

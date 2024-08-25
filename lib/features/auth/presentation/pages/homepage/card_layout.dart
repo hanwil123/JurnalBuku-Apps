@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:jurnalbukuapps/Api/FetchBooksApi.dart';
+import 'package:jurnalbukuapps/Model/Books.dart';
+
 
 class CardLayouts extends StatefulWidget {
   final double heightBody;
@@ -10,12 +13,13 @@ class CardLayouts extends StatefulWidget {
 }
 
 class _CardLayoutsState extends State<CardLayouts> {
-  final List<String> imageUrls = [
-    "assets/homebooklist/chairilanwar.jpg",
-    "assets/homebooklist/hpdeadlyhallows.jpg",
-    "assets/homebooklist/negeri5menara.jpg",
-    "assets/homebooklist/wintertokyo.jpg",
-  ];
+  late Future<List<Book>> futureBooks;
+
+  @override
+  void initState() {
+    super.initState();
+    futureBooks = fetchBooks();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,20 +30,35 @@ class _CardLayoutsState extends State<CardLayouts> {
         return Center(
           child: Container(
             height: widget.heightBody * 0.3, // Use 30% of the available height
-            child: CarouselView(
-              itemSnapping: true,
-              itemExtent: widthApp * 0.8, // Use 80% of the screen width
-              shrinkExtent: widthApp * 0.7, // Use 70% of the screen width for shrunk items
-              children: List<Widget>.generate(imageUrls.length, (int index) {
-                return UncontainedLayoutCard(
-                  index: index,
-                  imagePath: imageUrls[index],
-                );
-              }),
+            child: FutureBuilder<List<Book>>(
+              future: futureBooks,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(child: Text('No books available'));
+                } else {
+                  return CarouselView(
+                    itemSnapping: true,
+                    itemExtent: widthApp * 0.8, // Use 80% of the screen width
+                    shrinkExtent: widthApp *
+                        0.7, // Use 70% of the screen width for shrunk items
+                    children: List<Widget>.generate(snapshot.data!.length,
+                        (int index) {
+                      return UncontainedLayoutCard(
+                        index: index,
+                        imagePath: snapshot.data![index].coverImage,
+                      );
+                    }),
+                  );
+                }
+              },
             ),
           ),
         );
-      }
+      },
     );
   }
 }
@@ -64,9 +83,20 @@ class UncontainedLayoutCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: Image.asset(
+            child: Image.network(
               imagePath,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                print('Error loading image: $error');
+                return Container(
+                  color: Colors.grey,
+                  child: Icon(Icons.error),
+                );
+              },
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(child: CircularProgressIndicator());
+              },
             ),
           ),
           Container(
