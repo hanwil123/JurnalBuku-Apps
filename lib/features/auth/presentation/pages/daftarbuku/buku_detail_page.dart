@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:jurnalbukuapps/features/auth/presentation/pages/isibuku/baca_buku.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class BookDetailPage extends StatefulWidget {
@@ -37,7 +38,7 @@ class _BookDetailPageState extends State<BookDetailPage> {
   Future<void> _loadPdfContent() async {
     try {
       final response = await http.get(Uri.parse(widget.pdfUrl));
-      print("gambar "+ widget.coverImage);
+      print("gambar " + widget.coverImage);
       print("pdf buku " + widget.pdfUrl);
       if (response.statusCode == 200) {
         final PdfDocument document =
@@ -212,14 +213,24 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           height: 16,
                         ),
                         Container(
-                          margin: EdgeInsets.symmetric(vertical: 8.0),
-                          child: _isLoading
-                              ? CircularProgressIndicator()
-                              : Text(
-                                  _pdfText,
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                        ),
+                            margin: EdgeInsets.symmetric(vertical: 8.0),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BacaBuku(
+                                        pdfUrl: widget.pdfUrl,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  child: Row(children: [
+                                    Icon(Icons.book),
+                                    Text("Baca Buku")
+                                  ]),
+                                ))),
                       ],
                     ),
                   ),
