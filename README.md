@@ -1,4 +1,4 @@
-<img src="https://github.com/user-attachments/assets/a6bcd7dc-a1ba-45cc-aaa6-fdd8ff8ea422" alt="novel nest logo" width="500">
+<img src="https://github.com/user-attachments/assets/a6bcd7dc-a1ba-45cc-aaa6-fdd8ff8ea422" alt="novel nest logo" width="200">
 
 # Novel Nest
 
