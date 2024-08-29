@@ -1,31 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:jurnalbukuapps/Api/FetchCategoriesApi.dart';
+import 'package:jurnalbukuapps/Model/Category.dart';
 
-class SecondFitur extends StatelessWidget {
-  SecondFitur({Key? key}) : super(key: key);
+class SecondFitur extends StatefulWidget {
+  const SecondFitur({super.key});
 
-  final List<Map<String, dynamic>> jsonArray = [
-    {"text": "All Categories", "value": 1, "status": true},
-    {"text": "Comedy", "value": 2, "status": false},
-    {"text": "Romance", "value": 3, "status": false},
-    {"text": "Fiction", "value": 4, "status": false},
-    {"text": "Biografi", "value": 5, "status": false},
-    {"text": "Slice of Life", "value": 6, "status": false}
-  ];
+  @override
+  State<SecondFitur> createState() => _SecondFiturState();
+}
 
+class _SecondFiturState extends State<SecondFitur> {
+    late Future<List<Categories>> futureCategories;
+
+    @override
+    void initState() {
+      super.initState();
+      futureCategories = fetchCategories();
+    }
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 42,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: jsonArray.length,
-        shrinkWrap: true,
-        itemBuilder: (context, index) {
-          final item = jsonArray[index];
-          return UncontainedLayoutCard(
-            index: item['value'] as int,
-            label: item['text'] as String,
-          );
+      child: FutureBuilder<List<Categories>>(
+        future: futureCategories,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('No categories available'));
+          } else {
+            return ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: snapshot.data!.length,
+              itemBuilder: (context, index) {
+                final category = snapshot.data![index];
+                return UncontainedLayoutCard(
+                  category: category.name,
+                );
+              },
+            );
+          }
         },
       ),
     );
@@ -35,12 +51,10 @@ class SecondFitur extends StatelessWidget {
 class UncontainedLayoutCard extends StatelessWidget {
   const UncontainedLayoutCard({
     Key? key,
-    required this.index,
-    required this.label,
+    required this.category,
   }) : super(key: key);
 
-  final int index;
-  final String label;
+  final String category;
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +64,14 @@ class UncontainedLayoutCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white,
+          width: 1,
+        ),
       ),
       child: Center(
         child: Text(
-          label,
+          category,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 14,

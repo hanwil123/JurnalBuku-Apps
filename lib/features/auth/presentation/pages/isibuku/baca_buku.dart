@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
@@ -14,21 +15,18 @@ class BacaBuku extends StatefulWidget {
 
 class _BacaBukuState extends State<BacaBuku> {
   late PdfDocument _document;
-  final PagingController<int, String> _pagingController =
-      PagingController(firstPageKey: 1);
   late PageController _pageController;
+  final PagingController<int, List<String>> _pagingController =
+      PagingController(firstPageKey: 1);
   int _currentPage = 1;
   int _totalPages = 0;
-  Map<int, String> _pageCache = {};
-  int _preloadDistance = 2;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    _pagingController.addPageRequestListener((pageKey) {
-      _fetchPage(pageKey);
-    });
+    _pagingController.addPageRequestListener(_fetchPage);
     _loadPdfContent();
   }
 
@@ -39,66 +37,47 @@ class _BacaBukuState extends State<BacaBuku> {
         _document = PdfDocument(inputBytes: response.bodyBytes);
         setState(() {
           _totalPages = _document.pages.count;
+          _isLoading = false;
         });
         _pagingController.refresh();
-        _preloadPages(_currentPage);
       } else {
         throw Exception('Failed to load PDF');
       }
     } catch (e) {
-      print('Error loading PDF: $e');
+      setState(() => _isLoading = false);
       _pagingController.error = 'Failed to load PDF content';
     }
   }
 
-  Future<void> _fetchPage(int pageKey) async {
-    try {
-      if (pageKey > _totalPages) {
-        _pagingController.appendLastPage([]);
-        return;
-      }
-
-      String pageContent = await _getPageContent(pageKey);
-      final newItems = [pageContent];
-
-      final isLastPage = pageKey == _totalPages;
-      if (isLastPage) {
-        _pagingController.appendLastPage(newItems);
-      } else {
-        _pagingController.appendPage(newItems, pageKey + 1);
-      }
-
-      _preloadPages(pageKey);
-    } catch (error) {
-      _pagingController.error = error;
-    }
-  }
-
-  Future<String> _getPageContent(int pageKey) async {
-    if (_pageCache.containsKey(pageKey)) {
-      return _pageCache[pageKey]!;
+Future<void> _fetchPage(int pageKey) async {
+  try {
+    if (pageKey > _totalPages) {
+      _pagingController.appendLastPage([]);
+      return;
     }
 
-    final content = PdfTextExtractor(_document).extractText(
-      startPageIndex: pageKey - 1,
-      endPageIndex: pageKey - 1,
-    );
-    _pageCache[pageKey] = content;
-    return content;
-  }
+    // Memproses 2 halaman sekaligus untuk meringankan overhead
+    int chunkSize = 2;
+    int startPageIndex = pageKey - 1;
+    int endPageIndex = (pageKey + chunkSize - 1).clamp(1, _totalPages);
 
-  void _preloadPages(int currentPage) {
-    for (int i = 1; i <= _preloadDistance; i++) {
-      int nextPage = currentPage + i;
-      int prevPage = currentPage - i;
-      if (nextPage <= _totalPages) {
-        _getPageContent(nextPage);
-      }
-      if (prevPage > 0) {
-        _getPageContent(prevPage);
-      }
+    // Mengubah pageContents menjadi List<List<String>>
+    List<List<String>> pageContents = await compute(_extractPageText, {
+      'document': _document,
+      'startPageIndex': startPageIndex,
+      'endPageIndex': endPageIndex,
+    });
+
+    final isLastPage = endPageIndex == _totalPages;
+    if (isLastPage) {
+      _pagingController.appendLastPage(pageContents);
+    } else {
+      _pagingController.appendPage(pageContents, endPageIndex + 1);
     }
+  } catch (error) {
+    _pagingController.error = error;
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -106,33 +85,57 @@ class _BacaBukuState extends State<BacaBuku> {
       appBar: AppBar(
         title: Text('Baca Buku - Halaman $_currentPage dari $_totalPages'),
       ),
-      body: Stack(
-        children: [
-          PagedPageView<int, String>(
-            pagingController: _pagingController,
-            builderDelegate: PagedChildBuilderDelegate<String>(
-              itemBuilder: (context, item, index) => SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(item),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : PagedPageView<int, List<String>>(
+              pagingController: _pagingController,
+              builderDelegate: PagedChildBuilderDelegate<List<String>>(
+                itemBuilder: (context, item, index) => SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: item.map((pageText) => Text(pageText)).toList(),
+                    ),
+                  ),
                 ),
+                firstPageErrorIndicatorBuilder: (context) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Error first loading PDF content'),
+                      ElevatedButton(
+                        onPressed: () {
+                          _pagingController.refresh();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+                newPageErrorIndicatorBuilder: (context) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Error nlew oading PDF content'),
+                      ElevatedButton(
+                        onPressed: () {
+                          _pagingController.retryLastFailedRequest();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+                firstPageProgressIndicatorBuilder: (context) =>
+                    Center(child: CircularProgressIndicator()),
+                newPageProgressIndicatorBuilder: (context) =>
+                    Center(child: CircularProgressIndicator()),
+                noItemsFoundIndicatorBuilder: (context) =>
+                    Center(child: CircularProgressIndicator()),
               ),
-              firstPageProgressIndicatorBuilder: (context) =>
-                  Center(child: CircularProgressIndicator()), // Loading saat halaman pertama
-              newPageProgressIndicatorBuilder: (context) =>
-                  Center(child: CircularProgressIndicator()), // Loading saat halaman berikutnya
+              onPageChanged: (index) =>
+                  setState(() => _currentPage = index + 1),
             ),
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index + 1;
-              });
-              _preloadPages(_currentPage);
-            },
-          ),
-          if (_totalPages == 0)
-            Center(child: CircularProgressIndicator()), // Loading saat data PDF sedang dimuat
-        ],
-      ),
       bottomNavigationBar: BottomAppBar(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -173,4 +176,22 @@ class _BacaBukuState extends State<BacaBuku> {
     _document.dispose();
     super.dispose();
   }
+}
+
+// Fungsi untuk ekstraksi teks di isolate terpisah dengan chunk
+Future<List<List<String>>> _extractPageText(Map<String, dynamic> params) async {
+  final PdfDocument document = params['document'];
+  final int startPageIndex = params['startPageIndex'];
+  final int endPageIndex = params['endPageIndex'];
+
+  List<List<String>> pageContents = [];
+  for (int i = startPageIndex; i <= endPageIndex; i++) {
+    String pageText = PdfTextExtractor(document).extractText(
+      startPageIndex: i,
+      endPageIndex: i,
+    );
+    // Tambahkan hasil ekstraksi sebagai elemen list
+    pageContents.add([pageText]);
+  }
+  return pageContents;
 }

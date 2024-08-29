@@ -32,14 +32,11 @@ class _BookDetailPageState extends State<BookDetailPage> {
   @override
   void initState() {
     super.initState();
-    _loadPdfContent();
   }
 
   Future<void> _loadPdfContent() async {
     try {
       final response = await http.get(Uri.parse(widget.pdfUrl));
-      print("gambar " + widget.coverImage);
-      print("pdf buku " + widget.pdfUrl);
       if (response.statusCode == 200) {
         final PdfDocument document =
             PdfDocument(inputBytes: response.bodyBytes);
