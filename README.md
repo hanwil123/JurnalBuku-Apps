@@ -1,6 +1,6 @@
-# jurnalbukuapps
+# Novel Nest
 
-A new Flutter project.
+Android Apps for Reading Novels
 
 ## Getting Started
 
