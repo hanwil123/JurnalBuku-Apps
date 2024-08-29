@@ -1,4 +1,4 @@
-![novelnestlogo](https://github.com/user-attachments/assets/79c2b066-2c4f-4ae3-a550-c20d48b98af6)
+<img src="https://private-user-images.githubusercontent.com/94697945/362818413-79c2b066-2c4f-4ae3-a550-c20d48b98af6.png" alt="novel nest logo" width="500">
 # Novel Nest
 
 Android Apps for Reading Novels
